@@ -22,15 +22,15 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	std::normal_distribution<double> dist_y(y, std[1]);
 	std::normal_distribution<double> dist_theta(theta, std[2]);
 
-	num_particles = 100;
+	num_particles = 1000;
 
 	for (int i = 0; i < num_particles; i++){
 		Particle p;
 		p.x = dist_x(generator);
 		p.y = dist_y(generator);
 		p.theta = dist_theta(generator);
-		p.weight = 1;
-		weights[i] = 1;
+        p.weight = 1;
+        weights.push_back(1);
 		particles.push_back(p);
 	}
 
@@ -79,6 +79,7 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 				current_obs.id = current_pred.id;
 			}
 		}
+		observations[obs_i] = current_obs;
 	}
 
 }
@@ -155,8 +156,11 @@ void ParticleFilter::resample() {
 	// NOTE: You may find std::discrete_distribution helpful here.
 	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
 	std::vector<Particle> new_particles;
+	std::random_device rd;  //Will be used to obtain a seed for the random number engine
+	std::mt19937 gen(rd());
+	std::uniform_real_distribution<> dis(0, 1);
 	double beta = 0;
-	int index = int(rand() * num_particles);
+	int index = int(dis(gen) * num_particles);
 	double mw = 0;
 	for (int i = 0; i < num_particles; i++){
 		if (weights[i] > mw){
@@ -164,7 +168,7 @@ void ParticleFilter::resample() {
 		}
 	}
 	for (int i = 0; i < num_particles; i++){
-		beta += rand() * 2.0 * mw;
+		beta += dis(gen) * 2.0 * mw;
 		while (beta > weights[index]){
 			beta -= weights[index];
 			index = (index + 1) % num_particles;
