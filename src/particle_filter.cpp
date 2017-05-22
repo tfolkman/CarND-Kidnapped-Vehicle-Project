@@ -22,7 +22,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	std::normal_distribution<double> dist_y(y, std[1]);
 	std::normal_distribution<double> dist_theta(theta, std[2]);
 
-	num_particles = 1000;
+	num_particles = 100;
 
 	for (int i = 0; i < num_particles; i++){
 		Particle p;
@@ -33,6 +33,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
         weights.push_back(1);
 		particles.push_back(p);
 	}
+    is_initialized = 1;
 
 }
 
@@ -120,17 +121,18 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 		// Convert observations to map coordinates relative to this particle.
 		std::vector<LandmarkObs> obs_converted;
 		for (int obs = 0; obs < observations.size(); obs++){
-			LandmarkObs o;
-			o.x = o.x * std::cos(p.theta) + o.y * std::sin(p.theta) + p.x;
-			o.y = o.x * std::sin(p.theta) + o.y * std::cos(p.theta) + p.y;
-			obs_converted.push_back(o);
+			LandmarkObs o_new;
+			LandmarkObs o = observations[obs];
+			o_new.x = o.x * std::cos(p.theta) - o.y * std::sin(p.theta) + p.x;
+			o_new.y = o.x * std::sin(p.theta) + o.y * std::cos(p.theta) + p.y;
+			obs_converted.push_back(o_new);
 		}
 		// associate landmarks to observations
 		dataAssociation(predicted, obs_converted);
 		// calc normal prob for all observations
 		for (int c = 0; c < obs_converted.size(); c++){
 			LandmarkObs current_observation = obs_converted[c];
-			Map::single_landmark_s closest_landmark = map_landmarks.landmark_list[current_observation.id];
+			Map::single_landmark_s closest_landmark = map_landmarks.landmark_list[current_observation.id - 1];
             double n_exp = -1 * ((pow(current_observation.x-closest_landmark.x_f,2)/n_denom_1) +
 					(pow(current_observation.y-closest_landmark.y_f,2)/n_denom_2));
 			double probability = n_cost * exp(n_exp);
@@ -141,10 +143,10 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	}
     // normalize weights
 	double sum_weights = 0;
-	for (int i; i < num_particles; i++){
+	for (int i = 0; i < num_particles; i++){
 		sum_weights = sum_weights + weights[i];
 	}
-	for (int i; i < num_particles; i++){
+	for (int i = 0; i < num_particles; i++){
 		double norm_weight = weights[i] / sum_weights;
 		particles[i].weight = norm_weight;
 		weights[i] = norm_weight;
